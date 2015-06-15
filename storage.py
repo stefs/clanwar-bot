@@ -4,23 +4,23 @@ import datetime
 import logging
 
 # Project modules
-from util import * 
+import util
 
 Attr = collections.namedtuple('Attr', ['description', 'parser', 'must'])
 
 event_attr = collections.OrderedDict([
-	('opponent_tag', Attr('Clantag des Gegners', parse_text, True)),
-	('opponent_name', Attr('Name des Gegners', parse_text, False)),
-	('date', Attr('Datum', parse_date, True)),
-	('time', Attr('Uhrzeit', parse_time, True)),
-	('player_count', Attr('Spielerzahl pro Team', parse_int, True)),
-	('game_mode', Attr('Spielmodus', parse_text, True)),
-	('maps', Attr('Karten', parse_text, False)),
-	('rules', Attr('Regeln', parse_text, False)),
-	('location', Attr('Treffpunkt', parse_text, False))])
-#	('opponent_homepage', Attr('Homepage des Gegners', parse_text, False)),
-#	('organizer', Attr('Organisator', parse_text, False)),
-#	('opponent_contact', Attr('Ansprechpartner des Gegners', parse_text, False))])
+	('opponent_tag', Attr('Clantag des Gegners', util.parse_text, True)),
+	('opponent_name', Attr('Name des Gegners', util.parse_text, False)),
+	('date', Attr('Datum', util.parse_date, True)),
+	('time', Attr('Uhrzeit', util.parse_time, True)),
+	('player_count', Attr('Spielerzahl pro Team', util.parse_int, True)),
+	('game_mode', Attr('Spielmodus', util.parse_text, True)),
+	('maps', Attr('Karten', util.parse_text, False)),
+	('rules', Attr('Regeln', util.parse_text, False)),
+	('location', Attr('Treffpunkt', util.parse_text, False))])
+#	('opponent_homepage', Attr('Homepage des Gegners', util.parse_text, False)),
+#	('organizer', Attr('Organisator', util.parse_text, False)),
+#	('opponent_contact', Attr('Ansprechpartner des Gegners', util.parse_text, False))])
 
 counter = 0 # debug
 class Event:
@@ -48,13 +48,13 @@ class Event:
 		if self.location:
 			text.append('Treffpunkt: {}'.format(self.location))
 		if self.maps:
-			text.append(title('Karten', self.maps))
+			text.append(util.title('Karten', self.maps))
 		if self.rules:
-			text.append(title('Regeln', self.rules))
+			text.append(util.title('Regeln', self.rules))
 #		if self.organizer:
-#			text.append(title('Organisator', self.organizer))
+#			text.append(util.title('Organisator', self.organizer))
 #		if self.opponent_contact:
-#			text.append(title('Ansprechpartner Gegner', self.opponent_contact))
+#			text.append(util.title('Ansprechpartner Gegner', self.opponent_contact))
 		return '\n'.join(text)
 
 events = dict()
@@ -63,5 +63,17 @@ def get_events():
 	return events.values()
 
 def save(event):
-	logging.debug(event)
 	events[event.key] = event
+
+# debug
+event = Event()
+event.opponent_name = 'Test'
+event.opponent_tag = 'TST'
+event.date = datetime.date(2004, 4, 1)
+event.time = datetime.time(21, 0, 1)
+event.game_mode = 'Eroberung'
+event.player_count = 3
+event.maps = 'Zavod und Shanghai'
+event.rules = '42!'
+save(event)
+

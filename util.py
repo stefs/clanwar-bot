@@ -7,31 +7,6 @@ import datetime
 class Error(Exception):
 	pass
 
-## Get user choice
-#  @param options List of objects, presented with str method
-#  return Choosen object
-def multiple_choice(options):
-	# Return single option
-	if len(options) == 1:
-		return options[0]
-
-	# Cap options length
-	options = options[:len(string.ascii_lowercase)]
-	
-	# Present options
-	choices = dict()
-	for number in range(0, len(options)):
-		key = string.ascii_lowercase[number]
-		value = options[number]
-		choices[key] = value
-		print('[{}] {}'.format(key, value))
-
-	# Get user choice
-	while True:
-		key = input()
-		if key in choices:
-			return choices[key]
-
 def parse_text(data):
 	return data[:128]
 
@@ -85,19 +60,12 @@ def filter_string(data, allowed):
 			data = data.replace(char, '')
 	return data
 
-def user_input(parser):
+def user_input(parser, read):
 	while True:
 		try:
-			return parser(input())
+			return parser(read())
 		except Error as err:
 			logging.warning(err)
-
-def quote(text):
-	text = text.split('\n')
-	out = list()
-	for line in text:
-		out.append('| {}'.format(line))
-	return '\n'.join(out)
 
 def title(title, text):
 	if '\n' in text:
