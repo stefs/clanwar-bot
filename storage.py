@@ -8,7 +8,7 @@ import enum
 import util
 
 # TODO introduce max edit time for events and members
-# TODO user persistent storage
+# TODO use persistent storage
 # TODO synchronize with database
 # TODO store schedule
 
@@ -40,7 +40,7 @@ class Event:
 	def __str__(self):
 		return '{1} {2} {3}vs{3} gegen {0}'.format(
 			self.opponent_tag,
-			self.date.strftime('%a. %d.%m.%y'),
+			self.date.strftime('%a. %d.%m.'),
 			self.time.strftime('%H:%M'),
 			self.player_count)
 
@@ -81,7 +81,7 @@ def get_event(key):
 def set_event_attr(key, attr, value):
 	try:
 		event = get_event(key)
-	except Error:
+	except util.Error:
 		pass
 	else:
 		setattr(event, attr, value)
@@ -96,6 +96,14 @@ def delete_event(key):
 		del events[key]
 	except KeyError:
 		pass
+
+event = Event()
+event.opponent_tag = 'TST'
+event.date = datetime.date(2015, 6, 20)
+event.time = datetime.time(20, 30, 0)
+event.player_count = 16
+event.game_mode = 'Eroberung Klein'
+save_event(event)
 
 class Group(enum.Enum):
 	leader = 0
@@ -128,7 +136,7 @@ class Member:
 			return '{} (Trial)'.format(self.psn_name)
 		else:
 			return self.psn_name
-	
+
 	def summary(self):
 		text = list()
 		text.append('{}, {}'.format(self.psn_name, self.group.name.capitalize()))
@@ -136,7 +144,7 @@ class Member:
 		if not self.permission:
 			text.append('Hat Erlaubnis für DSO-Bot noch nicht erteilt.')
 		return '\n'.join(text)
-	
+
 	def preset_summary(self):
 		text = list()
 		for attr in attendance_attr:
@@ -160,7 +168,7 @@ def get_member(key):
 def set_member_attr(key, attr, value):
 	try:
 		member = get_member(key)
-	except Error:
+	except util.Error:
 		pass
 	else:
 		setattr(member, attr, value)
@@ -195,4 +203,58 @@ attendance_status = collections.OrderedDict([
 schedules = dict()
 
 class Schedule:
+	member_key = None
+	date = None
+	event_key = None
+	attendance = None
+
+def get_schedule_keys(member_key):
 	pass
+
+def compile_schedule(member_key):
+	# Get set of relevant dates
+	date = datetime.date.today()
+	dates = set()
+	for number in range(0, 28):
+		dates.add(date)
+		date += datetime.timedelta(days=1)
+
+	# Get set of events
+	events = list()
+	for event_key in get_event_keys():
+		try:
+			events.append(get_event(event_key))
+		except util.Error:
+			pass
+
+	# Get set of event dates
+	event_dates = set()
+	for event in events:
+		event_dates.add(event.date)
+
+	# Remove event dates from relevant dates
+	dates -= event_dates
+
+	# Remove weekdays from relevant dates
+	schedule = list()
+	for date in dates:
+		if date.weekday() >= 4:
+			schedule.append((
+				datetime.datetime.combine(date, datetime.time(20, 30, 0)),
+				None))
+
+	# Add event dates to relevant dates
+	for event in events:
+		schedule.append((
+			datetime.datetime.combine(event.date, event.time),
+			event))
+	schedule.sort()
+
+	text = list()
+	for date_time, event in schedule:
+		if event:
+			text.append('{}: {}'.format(event, None))
+		else:
+			text.append('{}: {}'.format(date_time.strftime('%a. %d.%m. %H:%M'),
+				None))
+	return '\n'.join(text)

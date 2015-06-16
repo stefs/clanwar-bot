@@ -22,8 +22,8 @@ class Initial(State):
 		return 'Bot neustarten'
 	def run(self):
 		if not storage.get_member(my_key).permission:
-			send('Hallo, dies ist der DSO-Bot. Möchtest du ihn '
-				'nutzen um Zusagen zu Clanwars zu verwalten?')
+			send('Hallo, dies ist der DSO-Bot. Möchtest du ihn nutzen um Zusagen '
+				'zu Clanwars zu verwalten?')
 			if util.user_input(util.parse_yesno, receive):
 				storage.set_member_attr(my_key, 'permission', True)
 			else:
@@ -34,9 +34,8 @@ class OptOut(State):
 		return 'Deaktivieren'
 	def run(self):
 		storage.set_member_attr(my_key, 'permission', False)
-		send('Du wirst keine Nachrichten mehr erhalten. '
-			'Um den DSO-Bot wieder zu aktivieren, '
-			'antworte mit "ja".')
+		send('Du wirst keine Nachrichten mehr erhalten. Um den DSO-Bot wieder zu '
+			'aktivieren, antworte mit "ja".')
 		while not util.user_input(util.parse_yesno, receive):
 			pass
 		self.next.append(Initial())
@@ -165,8 +164,8 @@ class NewMember(State):
 	def __str__(self):
 		return 'Neues Mitglied hinzufügen'
 	def run(self):
-		send('Bitte füge nur Personen hinzu, die ausdrücklich zugestimmt'
-			'haben den DSO-Bot zu nutzen. Fortfahren?')
+		send('Bitte füge nur Personen hinzu, die ausdrücklich zugestimmt haben '
+			'den DSO-Bot zu nutzen. Fortfahren?')
 		if not util.user_input(util.parse_yesno, receive):
 			self.next.append(ManageMembers())
 			return
@@ -220,7 +219,6 @@ class EditMember(State):
 			for group in storage.Group:
 				self.next.append(EditMemberGroup(self.member_key, group))
 			self.next.append(DeleteMember(self.member_key))
-		self.next.append(NewMember())
 		self.next.append(ManageMembers())
 		self.next.append(Base())
 
@@ -308,9 +306,19 @@ class EditSchedulePreset(State):
 
 class ManageSchedule(State):
 	def __str__(self):
-		return 'Zusagen verwalten'
+		return 'Eigene Zusagen verwalten'
 	def run(self):
-		send('Funktion nicht verfügbar')
+		send(storage.compile_schedule(my_key))
+
+class EditAttendance(State):
+	def __init__(self, event_key, date):
+		State.__init__(self)
+		self.event_key = event_key
+		self.date = date
+	def __str__(self):
+		pass
+	def run(self):
+		pass
 
 # Main loop
 def start():
@@ -318,10 +326,10 @@ def start():
 	while True:
 		# Log status
 		logging.info('User status: {}'.format(type(current).__name__))
-	
+
 		# Run state task
 		current.run()
-		
+
 		# Return to menu on missing options
 		if not current.next:
 			current = Base()
@@ -350,7 +358,3 @@ def start():
 			elif key in choices:
 				current = choices[key]
 				break
-
-def error(problem):
-	send('Entschuldigung, es ist ein Fehler aufgetreten. Der Admin wurde informiert.')
-	send_admin(problem)

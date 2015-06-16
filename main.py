@@ -31,5 +31,6 @@ except Exception as err:
 	message = '{}: {}\n{}'.format(type(err).__name__, err, ''.join(tb_lines))
 	logging.critical(message)
 	conversation.send_admin(message)
-	conversation.send('Entschuldigung, der Bot ist abgestürtzt und wird nicht weiter funktionieren. Der Admin wurde informiert.')
+	conversation.send('Entschuldigung, der Bot ist abgestürtzt und wird nicht '
+		'weiter funktionieren. Der Admin wurde informiert.')
 
