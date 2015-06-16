@@ -52,7 +52,14 @@ def parse_int(data):
 
 def parse_yesno(data):
 	data = filter_string(data, string.ascii_letters).lower()
-	return data in ['ja', 'yes']
+	return 'j' in data or 'y' in data
+
+def parse_phone(data):
+	data = filter_string(data, string.digits+'+')
+	if data:
+		return data
+	else:
+		raise Error('input too short')
 
 def filter_string(data, allowed):
 	for char in set(data):
@@ -65,7 +72,7 @@ def user_input(parser, read):
 		try:
 			return parser(read())
 		except Error as err:
-			logging.warning(err)
+			logging.warning('Parsing failed: {}'.format(err))
 
 def title(title, text):
 	if '\n' in text:

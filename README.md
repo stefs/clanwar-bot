@@ -19,4 +19,11 @@ menu shows possible successor states
     * default_
 * users
 * clanwars
-* 
+## Why use it over an website?
+* Works on old phones
+* Actively ask for clanwar participation
+* Track team availability without clanwar events
+
+## Installation
+* Make sure locale `de_DE.UTF-8` is installed with the `sudo dpkg-reconfigure locales` command
+

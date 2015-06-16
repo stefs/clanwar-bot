@@ -2,9 +2,13 @@
 import collections
 import datetime
 import logging
+import enum
 
 # Project modules
 import util
+
+# TODO lock events and members on edit
+# TODO introduce max edit time for events and members
 
 Attr = collections.namedtuple('Attr', ['description', 'parser', 'must'])
 
@@ -17,36 +21,39 @@ event_attr = collections.OrderedDict([
 	('game_mode', Attr('Spielmodus', util.parse_text, True)),
 	('maps', Attr('Karten', util.parse_text, False)),
 	('rules', Attr('Regeln', util.parse_text, False)),
-	('location', Attr('Treffpunkt', util.parse_text, False))])
+	('location', Attr('Server', util.parse_text, False))])
 #	('opponent_homepage', Attr('Homepage des Gegners', util.parse_text, False)),
 #	('organizer', Attr('Organisator', util.parse_text, False)),
 #	('opponent_contact', Attr('Ansprechpartner des Gegners', util.parse_text, False))])
 
-counter = 0 # debug
+counter_event = 0 # debug
 class Event:
 	def __init__(self):
-		global counter
-		self.key = counter
-		counter += 1
+		global counter_event
+		self.key = counter_event
+		counter_event += 1
 		for attr in event_attr:
 			setattr(self, attr, None)
 
 	def __str__(self):
 		return '{1} {2} {3}vs{3} gegen {0}'.format(
 			self.opponent_tag,
-			self.date.strftime('%a. %d. %b'),
+			self.date.strftime('%a. %d.%m.%y'),
 			self.time.strftime('%H:%M'),
 			self.player_count)
 
 	def summary(self):
 		text = list()
-		text.append('[{}] {}'.format(self.opponent_tag, self.opponent_name))
+		if self.opponent_name:
+			text.append('[{}] {}'.format(self.opponent_tag, self.opponent_name))
+		else:
+			text.append('DSO vs. {}'.format(self.opponent_tag))
 #		if self.opponent_homepage:
 #			text.append(self.opponent_homepage)
 		text.append('{0}vs{0} {1}'.format(self.player_count, self.game_mode))
 		text.append('{}, {} Uhr'.format(self.date.strftime('%A %d. %B %Y'), self.time.strftime('%H:%M')))
 		if self.location:
-			text.append('Treffpunkt: {}'.format(self.location))
+			text.append('Server: {}'.format(self.location))
 		if self.maps:
 			text.append(util.title('Karten', self.maps))
 		if self.rules:
@@ -59,21 +66,120 @@ class Event:
 
 events = dict()
 
-def get_events():
-	return events.values()
-
-def save(event):
+def save_event(event):
 	events[event.key] = event
+	logging.info('Event saved: {}'.format(event))
 
-# debug
-event = Event()
-event.opponent_name = 'Test'
-event.opponent_tag = 'TST'
-event.date = datetime.date(2004, 4, 1)
-event.time = datetime.time(21, 0, 1)
-event.game_mode = 'Eroberung'
-event.player_count = 3
-event.maps = 'Zavod und Shanghai'
-event.rules = '42!'
-save(event)
+# TODO was wenn fehler?
+def get_event(key):
+	try:
+		return events[key]
+	except KeyError:
+		raise util.Error('event not found')
 
+# TODO was wenn fehler?
+def set_event_attr(key, attr, value):
+	event = get_event(key)
+	setattr(event, attr, value)
+	save_event(event)
+
+def get_event_keys():
+	return events.keys()
+
+def delete_event(key):
+	del events[key]
+
+class Group(enum.Enum):
+	leader = 0
+	member = 1
+	trial = 2
+
+attendance_attr = collections.OrderedDict([
+	('default_friday', 'Freitag'),
+	('default_saturday', 'Samstag'),
+	('default_sunday', 'Sonntag')])
+
+counter_member = 0 # debug
+class Member:
+	phone_number = None
+	psn_name = None
+	group = None
+	permission = False
+
+	def __init__(self):
+		global counter_member
+		self.key = counter_member
+		counter_member += 1
+		for attr in attendance_attr:
+			setattr(self, attr, None)
+
+	def __str__(self):
+		if self.group is Group.leader:
+			return '{}★'.format(self.psn_name)
+		elif self.group is Group.trial:
+			return '{} (Trial)'.format(self.psn_name)
+		else:
+			return self.psn_name
+	
+	def summary(self):
+		text = list()
+		text.append('{}, {}'.format(self.psn_name, self.group.name.capitalize()))
+		text.append('Telefon: {}'.format(self.phone_number))
+		if not self.permission:
+			text.append('Hat Erlaubnis für DSO-Bot noch nicht erteilt.')
+		return '\n'.join(text)
+	
+	def preset_summary(self):
+		text = list()
+		for attr in attendance_attr:
+			text.append('{}: {}'.format(
+				attendance_attr[attr],
+				attendance_status[getattr(self, attr)]))
+		return '\n'.join(text)
+
+members = dict()
+
+def save_member(member):
+	members[member.key] = member
+	logging.info('Member saved: {}'.format(member))
+
+# TODO was wenn fehler?
+def get_member(key):
+	try:
+		return members[key]
+	except KeyError:
+		raise util.Error('member not found')
+
+# TODO was wenn fehler?
+def set_member_attr(key, attr, value):
+	member = get_member(key)
+	setattr(member, attr, value)
+	save_member(member)
+	logging.info('{} of {} was updated to {}'.format(attr, member, value))
+
+def get_member_keys(group):
+	members_group = list()
+	for key in members:
+		if members[key].group is group:
+			members_group.append(key)
+	return members_group
+
+def delete_member(key):
+	del members[key]
+
+member = Member()
+member.phone_number = 234
+member.psn_name = 'collin'
+member.group = Group(0)
+save_member(member)
+
+attendance_status = collections.OrderedDict([
+	(0, 'Verbindliche Zusage'),
+	(1, 'Unverbindliche Zusage'),
+	(2, 'Absage'),
+	(None, 'Keine Angabe')])
+
+schedules = dict()
+
+class Schedule:
+	pass
