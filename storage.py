@@ -7,8 +7,10 @@ import enum
 # Project modules
 import util
 
-# TODO lock events and members on edit
 # TODO introduce max edit time for events and members
+# TODO user persistent storage
+# TODO synchronize with database
+# TODO store schedule
 
 Attr = collections.namedtuple('Attr', ['description', 'parser', 'must'])
 
@@ -70,24 +72,30 @@ def save_event(event):
 	events[event.key] = event
 	logging.info('Event saved: {}'.format(event))
 
-# TODO was wenn fehler?
 def get_event(key):
 	try:
 		return events[key]
 	except KeyError:
 		raise util.Error('event not found')
 
-# TODO was wenn fehler?
 def set_event_attr(key, attr, value):
-	event = get_event(key)
-	setattr(event, attr, value)
-	save_event(event)
+	try:
+		event = get_event(key)
+	except Error:
+		pass
+	else:
+		setattr(event, attr, value)
+		save_event(event)
+		logging.info('{} of {} was updated to {}'.format(attr, event, value))
 
 def get_event_keys():
 	return events.keys()
 
 def delete_event(key):
-	del events[key]
+	try:
+		del events[key]
+	except KeyError:
+		pass
 
 class Group(enum.Enum):
 	leader = 0
@@ -143,19 +151,21 @@ def save_member(member):
 	members[member.key] = member
 	logging.info('Member saved: {}'.format(member))
 
-# TODO was wenn fehler?
 def get_member(key):
 	try:
 		return members[key]
 	except KeyError:
 		raise util.Error('member not found')
 
-# TODO was wenn fehler?
 def set_member_attr(key, attr, value):
-	member = get_member(key)
-	setattr(member, attr, value)
-	save_member(member)
-	logging.info('{} of {} was updated to {}'.format(attr, member, value))
+	try:
+		member = get_member(key)
+	except Error:
+		pass
+	else:
+		setattr(member, attr, value)
+		save_member(member)
+		logging.info('{} of {} was updated to {}'.format(attr, member, value))
 
 def get_member_keys(group):
 	members_group = list()
@@ -165,7 +175,10 @@ def get_member_keys(group):
 	return members_group
 
 def delete_member(key):
-	del members[key]
+	try:
+		del members[key]
+	except KeyError:
+		pass
 
 member = Member()
 member.phone_number = 234

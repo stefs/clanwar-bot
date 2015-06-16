@@ -45,11 +45,13 @@ class Base(State):
 	def __str__(self):
 		return 'Ins Hauptmenü wechseln'
 	def run(self):
-		send('Hallo {}!'.format(storage.get_member(my_key)))
+		me = storage.get_member(my_key)
+		send('Hallo {}!'.format(me))
 		self.next.append(ManageSchedule())
 		self.next.append(SchedulePresets())
-		self.next.append(ManageEvents())
-		self.next.append(ManageMembers())
+		if me.group is storage.Group.leader:
+			self.next.append(ManageEvents())
+			self.next.append(ManageMembers())
 		self.next.append(Feedback())
 		self.next.append(OptOut())
 
@@ -60,26 +62,35 @@ class ManageEvents(State):
 		event_keys = storage.get_event_keys()
 		if event_keys:
 			send('Um welchen Clanwar geht es?')
-			self.next.append(NewEvent())
 			for event_key in event_keys:
 				self.next.append(EditEvent(event_key))
-			self.next.append(Base())
 		else:
-			send('Kein Clanwar eingetragen') # TODO test
+			send('Kein Clanwar eingetragen')
+		self.next.append(NewEvent())
+		self.next.append(Base())
 
 class EditEvent(State):
 	def __init__(self, event_key):
 		State.__init__(self)
 		self.event_key = event_key
 	def __str__(self):
-		return str(storage.get_event(self.event_key))
+		try:
+			return str(storage.get_event(self.event_key))
+		except util.Error:
+			return '[Gelöschter Clanwar]'
 	def run(self):
-		event = storage.get_event(self.event_key)
+		try:
+			event = storage.get_event(self.event_key)
+		except util.Error:
+			send('Der Clanwar wurde gelöscht.')
+			self.next.append(ManageEvents())
+			return
 		send(event.summary())
 		send('Clanwar ändern?')
 		for attr in storage.event_attr:
 			self.next.append(EditEventAttr(self.event_key, attr))
 		self.next.append(DeleteEvent(self.event_key))
+		self.next.append(ManageEvents())
 		self.next.append(Base())
 
 class DeleteEvent(State):
@@ -89,7 +100,12 @@ class DeleteEvent(State):
 	def __str__(self):
 		return 'Clanwar absagen'
 	def run(self):
-		event = storage.get_event(self.event_key)
+		try:
+			event = storage.get_event(self.event_key)
+		except util.Error:
+			send('Clanwar ist schon gelöscht.')
+			self.next.append(ManageEvents())
+			return
 		send('Clanwar am {} wirklich absagen und löschen?'.format(event))
 		if util.user_input(util.parse_yesno, receive):
 			storage.delete_event(self.event_key)
@@ -187,15 +203,23 @@ class EditMember(State):
 		State.__init__(self)
 		self.member_key = member_key
 	def __str__(self):
-		return str(storage.get_member(self.member_key))
+		try:
+			return str(storage.get_member(self.member_key))
+		except util.Error:
+			return '[Gelöschtes Mitglied]'
 	def run(self):
-		member = storage.get_member(self.member_key)
+		try:
+			member = storage.get_member(self.member_key)
+		except util.Error:
+			send('Mitglied wurde gelöscht.')
+			self.next.append(ManageMembers())
+			return
 		send(member.summary())
-		self.next.append(EditMemberPhone(self.member_key))
 		self.next.append(EditMemberPSN(self.member_key))
-		for group in storage.Group:
-			self.next.append(EditMemberGroup(self.member_key, group))
-		self.next.append(DeleteMember(self.member_key))
+		if self.member_key != my_key:
+			for group in storage.Group:
+				self.next.append(EditMemberGroup(self.member_key, group))
+			self.next.append(DeleteMember(self.member_key))
 		self.next.append(NewMember())
 		self.next.append(ManageMembers())
 		self.next.append(Base())
@@ -207,7 +231,12 @@ class DeleteMember(State):
 	def __str__(self):
 		return 'Mitglied löschen'
 	def run(self):
-		member = storage.get_member(self.member_key)
+		try:
+			member = storage.get_member(self.member_key)
+		except util.Error:
+			send('Mitglied ist schon gelöscht.')
+			self.next.append(ManageMembers())
+			return
 		send('{} wirklich löschen?'.format(member))
 		if util.user_input(util.parse_yesno, receive):
 			storage.delete_member(self.member_key)
@@ -215,18 +244,6 @@ class DeleteMember(State):
 			self.next.append(ManageMembers())
 		else:
 			self.next.append(EditMember(self.member_key))
-
-class EditMemberPhone(State):
-	def __init__(self, member_key):
-		State.__init__(self)
-		self.member_key = member_key
-	def __str__(self):
-		return 'Telefonnummer bearbeiten'
-	def run(self):
-		send('WhatsApp-Nummer?')
-		value = util.user_input(util.parse_phone, receive)
-		storage.set_member_attr(self.member_key, 'phone_number', value)
-		self.next.append(EditMember(self.member_key))
 
 class EditMemberPSN(State):
 	def __init__(self, member_key):
@@ -256,9 +273,6 @@ class SchedulePresets(State):
 		return 'Voreinstellung für Zusagen'
 	def run(self):
 		me = storage.get_member(my_key)
-		if not me:
-			error('failed to get self from database')
-			return
 		send('Voreinstellungen für neue Clanwars nach Wochentagen:\n{}'.format(
 			me.preset_summary()))
 		for attr in storage.attendance_attr:
