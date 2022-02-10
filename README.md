@@ -1,5 +1,7 @@
 # WhatsApp Clanwar Bot
 
+> This project was abandoned in an incomplete state.
+
 * State machine
 * User database: Leader, Member, Inaktiv
 * WhatsApp: direct to WA server or Rooted phone?
